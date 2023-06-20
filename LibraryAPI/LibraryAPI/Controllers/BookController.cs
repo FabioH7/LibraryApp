@@ -5,6 +5,7 @@ using LibraryAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Cors;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -27,9 +28,20 @@ namespace LibraryAPI.Controllers
         [Authorize]
         public async Task<ActionResult<IEnumerable<Book>>> Get()
         {
-            var books = await _dbContext.Books.Include(b => b.Author).Include(b => b.Categories).ToListAsync();
+            var books = await _dbContext.Books
+            .Include(b => b.Author)
+            .Include(b => b.Categories)
+            .ToListAsync();
 
-            return Ok(books);
+            var bookDtos = books.Select(book => new BookDto
+            {
+                Id = book.Id,
+                Title = book.Title,
+                Description = book.Description,
+                Author = book.Author.Name,
+                Categories = book.Categories.Select(category => category.Category.Orientation).ToList()
+            }).ToList();
+            return Ok(bookDtos);
         }
 
         [HttpGet("{id}")]
@@ -48,14 +60,15 @@ namespace LibraryAPI.Controllers
 
         [HttpDelete("{id}")]
         [Authorize("AdminOnly")]
-        public Book Delete(int id)
+        public IActionResult Delete(int id)
         {
+            Console.WriteLine(id);
             Book? book = _dbContext.Books.Find(id);
             if (book != null)
             {
                 _dbContext.Books.Remove(book);
                 _dbContext.SaveChanges();
-                return book;
+                return Ok("BookRemoved");
             }
             else
             {
@@ -67,19 +80,23 @@ namespace LibraryAPI.Controllers
         [Authorize("AdminOnly")]
         public async Task<ActionResult<Book>> CreateAsync(CreateBook createBook)
         {
-            var book = Book.FromCreateModel(createBook);
-            foreach (var categoryId in createBook.CategoryIds)
+            Console.WriteLine(User.Identity.IsAuthenticated);
+            if (User.IsInRole("Admin"))
             {
-                book.Categories.Add(new BookCategory
+                var book = Book.FromCreateModel(createBook);
+                foreach (var categoryId in createBook.CategoryIds)
                 {
-                    BookId = book.Id,
-                    CategoryId = categoryId
-                });
+                    book.Categories.Add(new BookCategory
+                    {
+                        BookId = book.Id,
+                        CategoryId = categoryId
+                    });
+                }
+                await _dbContext.Books.AddAsync(book);
+                await _dbContext.SaveChangesAsync();
+                return await Task.FromResult(book);
             }
-
-            await _dbContext.Books.AddAsync(book);
-            await _dbContext.SaveChangesAsync();
-            return await Task.FromResult(book);
+            return Unauthorized();
         }
     }
 

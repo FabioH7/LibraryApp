@@ -89,12 +89,19 @@ namespace LibraryAPI
                     }
                 });
             });
+
+            services.AddCors(o => o.AddPolicy("ReactApp", builder =>
+            {
+                builder.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            }));
             // Other service configurations...
 
             services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-}); ;
+            {
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+            });
             services.AddSwaggerGen();
         }
 
@@ -108,8 +115,11 @@ namespace LibraryAPI
 
             app.UseRouting();
 
+            app.UseCors("ReactApp");
+
             app.UseAuthentication();
             app.UseAuthorization();
+
 
             app.UseEndpoints(endpoints =>
             {
