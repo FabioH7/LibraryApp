@@ -37,10 +37,7 @@ namespace LibraryAPI.Seeders
             // Create admin user if it doesn't exist
             if (adminUser == null)
             {
-                adminUser = new User { Id = 1, Name = "Admin", Surname = "Admin", Email = adminEmail, UserName = adminEmail, PasswordHash = adminPassword, RoleId = 1 };
-                var passwordHasher = new PasswordHasher<User>();
-                adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, adminPassword);
-
+                adminUser = new User { Name = "Admin", Surname = "Admin", Email = adminEmail, UserName = adminEmail, RoleId = 1 };
                 var result = await userManager.CreateAsync(adminUser, adminPassword);
 
                 if (result.Succeeded)
@@ -60,6 +57,5 @@ namespace LibraryAPI.Seeders
                 }
             }
         }
-
     }
 }

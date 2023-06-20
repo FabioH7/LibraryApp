@@ -55,16 +55,23 @@ namespace LibraryAPI.Controllers
             var userExists = await _userManager.FindByEmailAsync(user.Email);
             if (userExists == null)
             {
+                User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, UserName = user.Email, RoleId = user.RoleId };
+                var result = await _userManager.CreateAsync(newUser, user.Password);
 
-                User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, UserName = user.Email, PasswordHash = user.Password, RoleId = user.RoleId };
-                var passwordHasher = new PasswordHasher<User>();
-                newUser.PasswordHash = passwordHasher.HashPassword(newUser, user.Password);
-                await _dbContext.Users.AddAsync(newUser);
-                await _dbContext.SaveChangesAsync();
-                return await Task.FromResult(newUser);
+                if (result.Succeeded)
+                {
+                    return await Task.FromResult(newUser);
+                }
+                else
+                {
+                    var errors = result.Errors.Select(e => e.Description);
+                    Console.WriteLine("Failed to create user. Errors: " + string.Join(", ", errors));
+                }
             }
+
             return Unauthorized();
         }
+
     }
 }
 

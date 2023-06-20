@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using LibraryAPI.Models;
 using LibraryAPI.Models.AuthModels;
 using Microsoft.AspNetCore.Authentication;
+using BCrypt.Net;
 
 [ApiController]
 [Route("api/login")]
@@ -35,25 +37,10 @@ public class LoginController : ControllerBase
 
             if (user != null)
             {
-                var passwordHasher = new PasswordHasher<User>();
-                var passwordVerificationResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
+                var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: false);
 
-                if (passwordVerificationResult == PasswordVerificationResult.Success)
+                if (result.Succeeded)
                 {
-                    var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    // Add any additional claims as needed
-                };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, "Identity.Application");
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = false // Change to true if you want persistent authentication
-                    };
-
-                    await HttpContext.SignInAsync("Identity.Application", new ClaimsPrincipal(claimsIdentity), authProperties);
-
                     var token = await GenerateJwtTokenAsync(user);
                     return Ok(new { Token = token, User = user });
                 }
