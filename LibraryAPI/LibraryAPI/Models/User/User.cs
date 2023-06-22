@@ -11,7 +11,7 @@ public class User : IdentityUser<int>
     public string? Bio { get; set; }
     [ForeignKey("Role")]
     public int RoleId { get; set; }
-    public string RefreshToken { get; set; }
+    public string? RefreshToken { get; set; }
     public Role Role { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<Book> Books { get; set; }

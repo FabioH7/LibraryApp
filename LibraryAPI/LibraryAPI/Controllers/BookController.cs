@@ -30,6 +30,7 @@ namespace LibraryAPI.Controllers
             var books = await _dbContext.Books
             .Include(b => b.Author)
             .Include(b => b.Categories)
+            .ThenInclude(bc => bc.Category)
             .ToListAsync();
 
             var bookDtos = books.Select(book => new BookDto
@@ -38,6 +39,7 @@ namespace LibraryAPI.Controllers
                 Title = book.Title,
                 Description = book.Description,
                 Author = book.Author.Name,
+                ImageUrl = book.ImageUrl,
                 Categories = book.Categories.Select(category => category.Category.Name).ToList()
             }).ToList();
             return Ok(bookDtos);
@@ -83,15 +85,15 @@ namespace LibraryAPI.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<Book>> CreateAsync(CreateBook createBook)
+        public async Task<ActionResult<Book>> CreateAsync([FromForm] CreateBook createBook)
         {
-
-            var book = _dbContext.Books.Where(b => b.Title == createBook.Title);
-            if (book != null)
-            {
-                return Conflict("A book with the same title already exists."); ;
-            }
-
+            Console.WriteLine("u fut");
+            // var book = _dbContext.Books.Where(b => b.id == createBook.Title);
+            // if (book != null)
+            // {
+            //     return Conflict("A book with the same title already exists."); ;
+            // }
+            var imageUrl = "";
             // Process the image file
             if (createBook.Cover != null && createBook.Cover.Length > 0)
             {
@@ -108,9 +110,9 @@ namespace LibraryAPI.Controllers
                 }
 
                 // Set the image URL for the book
-                var imageUrl = imagePath;
+                imageUrl = imagePath;
             }
-            Book newBook = new Book { Title = createBook.Title, Description = createBook.Description, AuthorId = createBook.AuthorId, Categories = new List<BookCategory>() };
+            Book newBook = new Book { Title = createBook.Title, ImageUrl = imageUrl, Description = createBook.Description, AuthorId = createBook.AuthorId, Categories = new List<BookCategory>() };
             foreach (var categoryId in createBook.CategoryIds)
             {
                 newBook.Categories.Add(new BookCategory

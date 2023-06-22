@@ -85,7 +85,7 @@ namespace LibraryAPI.Controllers
             var userExists = await _userManager.FindByEmailAsync(user.Email);
             if (userExists == null)
             {
-                User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, UserName = user.Email, RoleId = user.RoleId };
+                User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, UserName = user.Email, RoleId = user.RoleId, Bio = user.Bio };
                 var result = await _userManager.CreateAsync(newUser, user.Password);
 
                 if (result.Succeeded)

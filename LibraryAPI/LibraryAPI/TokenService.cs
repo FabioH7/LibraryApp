@@ -40,18 +40,23 @@ public class TokenService : ITokenService
         var key = Encoding.ASCII.GetBytes(_secretKey);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim("sub", user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName)
-                // Add any additional claims as needed
-            }),
+            Subject = new ClaimsIdentity(new List<Claim>
+        {
+            new Claim("sub", user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.UserName)
+            // Add role claims
+        }),
             Expires = DateTime.UtcNow.AddDays(_expirationDays),
             Issuer = _issuer,
             Audience = _audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
-
+        // Add user roles as claims
+        var roles = _userManager.GetRolesAsync(user).GetAwaiter().GetResult();
+        foreach (var role in roles)
+        {
+            tokenDescriptor.Subject.AddClaim(new Claim(ClaimTypes.Role, role));
+        }
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }

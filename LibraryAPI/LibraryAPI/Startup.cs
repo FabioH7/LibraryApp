@@ -7,6 +7,8 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryAPI
 {
@@ -103,6 +105,19 @@ namespace LibraryAPI
             options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
         });
             services.AddSwaggerGen();
+            services.AddControllersWithViews();
+            services.Configure<IISServerOptions>(options =>
+    {
+        options.AllowSynchronousIO = true;
+    });
+
+            services.Configure<FormOptions>(options =>
+            {
+                options.MultipartBodyLengthLimit = int.MaxValue;
+                options.MemoryBufferThreshold = int.MaxValue;
+                options.ValueLengthLimit = int.MaxValue;
+                options.BufferBodyLengthLimit = int.MaxValue;
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
