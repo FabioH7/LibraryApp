@@ -26,7 +26,10 @@ namespace LibraryAPI.Controllers
         {
             var users = await _dbContext.Users
             .Include(b => b.Role)
+            .Include(b => b.Books)
             .ToListAsync();
+            var bookDtos = new List<BookDto>();
+
             var userDtos = users.Select(user => new UserDto
             {
                 Id = user.Id,
@@ -34,8 +37,7 @@ namespace LibraryAPI.Controllers
                 Surname = user.Surname,
                 Email = user.Email,
                 Bio = user.Bio,
-                Role = user.Role.Name,
-
+                Role = user.Role.Name
             }).ToList();
             return Ok(userDtos);
         }
@@ -43,7 +45,12 @@ namespace LibraryAPI.Controllers
         [HttpGet("{id}")]
         public ActionResult<User> Get(int id)
         {
-            var user = _dbContext.Users.Find(id);
+            var user = _dbContext.Users
+            .Include(u => u.Role)
+            .Include(u => u.Books)
+            .ThenInclude(ub => ub.Categories)
+            .FirstOrDefault(u => u.Id == id);
+
             if (user == null)
             {
                 return NotFound("User not found");
@@ -56,7 +63,15 @@ namespace LibraryAPI.Controllers
                 Email = user.Email,
                 Bio = user.Bio,
                 Role = user.Role.Name,
+                Books = user.Books.Select(book => new BookDto
+                {
+                    Id = book.Id,
+                    Title = book.Title,
+                    Description = book.Description,
+                    Author = book.Author.Name,
+                    ImageUrl = book.ImageUrl,
 
+                })
             };
             return Ok(userDto);
         }
