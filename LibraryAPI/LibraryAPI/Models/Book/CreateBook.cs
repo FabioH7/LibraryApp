@@ -8,5 +8,6 @@ public class CreateBook
     public string Description { get; set; }
     public int AuthorId { get; set; }
     public List<int> CategoryIds { get; set; }
+    public IFormFile Cover { get; set; } // New property for the uploaded image file
 }
 

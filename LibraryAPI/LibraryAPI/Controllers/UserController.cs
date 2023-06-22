@@ -24,16 +24,45 @@ namespace LibraryAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> Get()
         {
-            return await _dbContext.Users.ToListAsync();
+            var users = await _dbContext.Users
+            .Include(b => b.Role)
+            .ToListAsync();
+            var userDtos = users.Select(user => new UserDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
+                Email = user.Email,
+                Bio = user.Bio,
+                Role = user.Role.Name,
+
+            }).ToList();
+            return Ok(userDtos);
         }
 
         [HttpGet("{id}")]
-        public User Get(int id)
+        public ActionResult<User> Get(int id)
         {
-            return _dbContext.Users.Find(id);
+            var user = _dbContext.Users.Find(id);
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+            var userDto = new UserDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Surname = user.Surname,
+                Email = user.Email,
+                Bio = user.Bio,
+                Role = user.Role.Name,
+
+            };
+            return Ok(userDto);
         }
 
         [HttpDelete("{id}")]
+        [Authorize("AdminOnly")]
         public User Delete(int id)
         {
             User? user = _dbContext.Users.Find(id);
@@ -50,6 +79,7 @@ namespace LibraryAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize("AdminOnly")]
         public async Task<ActionResult<User>> Post(RegisterModel user)
         {
             var userExists = await _userManager.FindByEmailAsync(user.Email);
@@ -68,8 +98,7 @@ namespace LibraryAPI.Controllers
                     Console.WriteLine("Failed to create user. Errors: " + string.Join(", ", errors));
                 }
             }
-
-            return Unauthorized();
+            return BadRequest("User already exists.");
         }
 
     }

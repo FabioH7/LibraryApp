@@ -20,9 +20,10 @@ namespace LibraryAPI
                 var services = scope.ServiceProvider;
                 var userManager = services.GetRequiredService<UserManager<User>>();
                 var roleManager = services.GetRequiredService<RoleManager<Role>>();
+                var tokenService = services.GetRequiredService<ITokenService>();
 
                 // Seed database with roles and initial admin user
-                SeedData.Initialize(userManager, roleManager).Wait();
+                SeedData.Initialize(userManager, roleManager, tokenService).Wait();
             }
 
             host.Run();

@@ -6,10 +6,10 @@ namespace LibraryAPI.Seeders
 {
     public static class SeedData
     {
-        public static async Task Initialize(UserManager<User> userManager, RoleManager<Role> roleManager)
+        public static async Task Initialize(UserManager<User> userManager, RoleManager<Role> roleManager, ITokenService tokenService)
         {
             await SeedRoles(roleManager);
-            await SeedAdminUser(userManager);
+            await SeedAdminUser(userManager, tokenService);
         }
 
         private static async Task SeedRoles(RoleManager<Role> roleManager)
@@ -27,7 +27,7 @@ namespace LibraryAPI.Seeders
             }
         }
 
-        private static async Task SeedAdminUser(UserManager<User> userManager)
+        private static async Task SeedAdminUser(UserManager<User> userManager, ITokenService tokenService)
         {
             var adminEmail = "admin@example.com";
             var adminPassword = "Admin123!";
@@ -38,20 +38,20 @@ namespace LibraryAPI.Seeders
             if (adminUser == null)
             {
                 adminUser = new User { Name = "Admin", Surname = "Admin", Email = adminEmail, UserName = adminEmail, RoleId = 1 };
+                var refreshToken = tokenService.GenerateRefreshToken();
+                adminUser.RefreshToken = refreshToken;
                 var result = await userManager.CreateAsync(adminUser, adminPassword);
 
                 if (result.Succeeded)
                 {
-                    // Assign admin role to the admin user if not already assigned
                     if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
                     }
+                    await userManager.UpdateAsync(adminUser);
                 }
                 else
                 {
-                    // Handle the user creation failure if necessary
-                    // Log or throw an exception, for example
                     var errors = result.Errors.Select(e => e.Description);
                     Console.WriteLine("Failed to create admin user. Errors: " + string.Join(", ", errors));
                 }

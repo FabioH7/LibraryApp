@@ -24,11 +24,13 @@ namespace Backend_Web_Lib.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly ITokenService _tokenService;
 
-        public AccountController(UserManager<User> userManager, IConfiguration configuration)
+        public AccountController(UserManager<User> userManager, IConfiguration configuration, ITokenService tokenService)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
@@ -67,18 +69,11 @@ namespace Backend_Web_Lib.Controllers
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 }.Union(roleClaims);
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]));
-                var token = new JwtSecurityToken(
-                    issuer: _configuration["JwtSettings:Issuer"],
-                    audience: _configuration["JwtSettings:Audience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddMinutes(15),
-                    signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-                );
+                var token = _tokenService.GenerateAccessToken(user);
 
                 return Ok(new
                 {
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
+                    token,
                     user = new
                     {
                         username = user.UserName,

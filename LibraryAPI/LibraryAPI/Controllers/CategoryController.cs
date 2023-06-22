@@ -21,13 +21,27 @@ namespace LibraryAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Category>>> Get()
         {
-            return await _dbContext.Categories.ToListAsync();
+            var categories = await _dbContext.Categories.ToListAsync();
+            var categoryDtos = categories.Select(book => new CategoryDto
+            {
+                Id = book.Id,
+                Name = book.Name,
+                Priority = book.Priority,
+
+            }).ToList();
+            return Ok(categoryDtos);
         }
 
         [HttpGet("{id}")]
-        public Category Get(int id)
+        public ActionResult<Category> Get(int id)
         {
-            return _dbContext.Categories.Find(id);
+            var category = _dbContext.Categories.Find(id);
+            if (category == null)
+            {
+                return NotFound("Category not found");
+            }
+            var catDto = new CategoryDto { Id = category.Id, Name = category.Name, Priority = category.Priority };
+            return Ok(category);
         }
 
         [HttpDelete("{id}")]
@@ -51,7 +65,7 @@ namespace LibraryAPI.Controllers
         [Authorize("AdminOnly")]
         public async Task<ActionResult<Category>> Post(CreateCategory category)
         {
-            var newCategory = Category.FromCreateModel(category);
+            var newCategory = new Category { Name = category.Name, Priority = category.Priority };
             await _dbContext.Categories.AddAsync(newCategory);
             await _dbContext.SaveChangesAsync();
             return await Task.FromResult(newCategory);
@@ -67,7 +81,8 @@ namespace LibraryAPI.Controllers
             {
                 return NotFound();
             }
-            category.Orientation = updatedCategory.Orientation;
+            category.Name = updatedCategory.Name;
+            category.Priority = updatedCategory.Priority;
             await _dbContext.SaveChangesAsync();
             return await Task.FromResult(category);
         }

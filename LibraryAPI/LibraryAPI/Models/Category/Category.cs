@@ -7,18 +7,9 @@ public class Category
 {
     [Key]
     public int Id { get; set; }
-
-    public string Orientation { get; set; }
-
+    public string Name { get; set; }
+    public string Priority { get; set; }
     public List<BookCategory> Books { get; set; }
-    private DateTime CreatedAt { get; set; }
-    public static Category FromCreateModel(CreateCategory createModel)
-    {
-        return new Category
-        {
-            CreatedAt = DateTime.UtcNow,
-            Orientation = createModel.Orientation
-        };
-    }
+    public DateTime CreatedAt { get; set; }
 }
 

@@ -10,6 +10,7 @@ public class Book
     [Required]
     public string Title { get; set; }
     public string Description { get; set; }
+    public string ImageUrl { get; set; }
 
     [ForeignKey("AuthorId")]
     public int AuthorId { get; set; }

@@ -1,15 +1,12 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using LibraryAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.OpenApi.Models;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
+using Microsoft.Extensions.FileProviders;
 
 namespace LibraryAPI
 {
@@ -50,6 +47,8 @@ namespace LibraryAPI
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                 };
             });
+
+            services.AddScoped<ITokenService, TokenService>();
 
             services.AddAuthorization(options =>
             {
@@ -98,10 +97,11 @@ namespace LibraryAPI
             }));
             // Other service configurations...
 
-            services.AddControllers().AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-            });
+            services.AddControllers().AddNewtonsoftJson(options =>
+        {
+            options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+        });
             services.AddSwaggerGen();
         }
 
@@ -118,9 +118,14 @@ namespace LibraryAPI
             app.UseCors("ReactApp");
 
             app.UseAuthentication();
+            app.UseMiddleware<JwtMiddleware>();
             app.UseAuthorization();
 
-
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "images")),
+                RequestPath = "/images"
+            });
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
