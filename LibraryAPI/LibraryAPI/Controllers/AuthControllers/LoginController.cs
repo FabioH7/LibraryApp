@@ -71,10 +71,16 @@ namespace Backend_Web_Lib.Controllers
                 }.Union(roleClaims);
 
                 var token = _tokenService.GenerateAccessToken(user);
+                var refreshToken = _tokenService.GenerateRefreshToken();
+
+                // Store the refresh token in the user's RefreshToken property
+                user.RefreshToken = refreshToken;
+                await _userManager.UpdateAsync(user);
 
                 return Ok(new
                 {
                     token,
+                    refreshToken,
                     user = new
                     {
                         username = user.UserName,

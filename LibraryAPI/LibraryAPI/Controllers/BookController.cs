@@ -38,7 +38,7 @@ namespace LibraryAPI.Controllers
                 Id = book.Id,
                 Title = book.Title,
                 Description = book.Description,
-                Author = book.Author.Name,
+                Author = book.Author.Name + ' ' + book.Author.Surname,
                 ImageUrl = book.ImageUrl,
                 Categories = book.Categories.Select(category => category.Category.Name).ToList()
             }).ToList();
@@ -48,7 +48,9 @@ namespace LibraryAPI.Controllers
         [HttpGet("{id}")]
         public IActionResult Get(int id)
         {
-            var book = _dbContext.Books.Include(b => b.Categories).FirstOrDefault(b => b.Id == id);
+            var book = _dbContext.Books.Include(b => b.Author)
+            .Include(b => b.Categories)
+            .ThenInclude(bc => bc.Category).FirstOrDefault(b => b.Id == id);
 
             if (book == null)
             {
@@ -59,7 +61,8 @@ namespace LibraryAPI.Controllers
                 Id = book.Id,
                 Title = book.Title,
                 Description = book.Description,
-                Author = book.Author.Name,
+                Author = book.Author.Name + ' ' + book.Author.Surname,
+                ImageUrl = book.ImageUrl,
                 Categories = book.Categories.Select(category => category.Category.Name).ToList()
             };
             return Ok(bookDto);
@@ -87,29 +90,15 @@ namespace LibraryAPI.Controllers
         [Authorize]
         public async Task<ActionResult<Book>> CreateAsync([FromForm] CreateBook createBook)
         {
-            Console.WriteLine("u fut");
-            // var book = _dbContext.Books.Where(b => b.id == createBook.Title);
-            // if (book != null)
-            // {
-            //     return Conflict("A book with the same title already exists."); ;
-            // }
             var imageUrl = "";
-            // Process the image file
             if (createBook.Cover != null && createBook.Cover.Length > 0)
             {
-                // Generate a unique file name for the image
                 string uniqueFileName = Guid.NewGuid().ToString() + "_" + createBook.Cover.FileName;
-
-                // Define the path where the image will be saved
                 string imagePath = Path.Combine("images", uniqueFileName);
-
-                // Save the image to the file system
                 using (var fileStream = new FileStream(imagePath, FileMode.Create))
                 {
                     await createBook.Cover.CopyToAsync(fileStream);
                 }
-
-                // Set the image URL for the book
                 imageUrl = imagePath;
             }
             Book newBook = new Book { Title = createBook.Title, ImageUrl = imageUrl, Description = createBook.Description, AuthorId = createBook.AuthorId, Categories = new List<BookCategory>() };
@@ -128,33 +117,71 @@ namespace LibraryAPI.Controllers
 
         [HttpPut("{id}")]
         [Authorize("AdminOnly")]
-        public async Task<ActionResult<Book>> Put(int id, CreateBook createBook)
+        public async Task<ActionResult<BookDto>> Put(int id, [FromForm] CreateBook createBook)
         {
-            // Check if the user is an admin
+            var book = await _dbContext.Books
+                .Include(b => b.Author)
+                .Include(b => b.Categories)
+                .ThenInclude(bc => bc.Category)
+                .FirstOrDefaultAsync(b => b.Id == id);
 
-            var book = await _dbContext.Books.FindAsync(id);
             if (book == null)
             {
                 return NotFound();
             }
 
+            var imageUrl = "";
+            if (createBook.Cover != null && createBook.Cover.Length > 0)
+            {
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + createBook.Cover.FileName;
+                string imagePath = Path.Combine("images", uniqueFileName);
+                using (var fileStream = new FileStream(imagePath, FileMode.Create))
+                {
+                    await createBook.Cover.CopyToAsync(fileStream);
+                }
+                imageUrl = imagePath;
+            }
+
             book.Title = createBook.Title;
+            book.ImageUrl = imageUrl;
             book.Description = createBook.Description;
             book.AuthorId = createBook.AuthorId;
 
-            _dbContext.BookCategories.RemoveRange(book.Categories);
-
-            foreach (var categoryId in createBook.CategoryIds)
+            // Update book categories
+            if (createBook.CategoryIds != null)
             {
-                book.Categories.Add(new BookCategory
-                {
-                    BookId = book.Id,
-                    CategoryId = categoryId
-                });
-            }
-            await _dbContext.SaveChangesAsync();
+                // Clear existing categories
+                book.Categories.Clear();
 
-            return book;
+                // Add new categories
+                foreach (var categoryId in createBook.CategoryIds)
+                {
+                    var category = await _dbContext.Categories.FindAsync(categoryId);
+                    if (category != null)
+                    {
+                        book.Categories.Add(new BookCategory
+                        {
+                            BookId = book.Id,
+                            CategoryId = categoryId
+                        });
+                    }
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+            var author = _dbContext.Users.FirstOrDefault(u => u.Id == book.AuthorId);
+            var bookDto = new BookDto
+            {
+                Id = book.Id,
+                Title = book.Title,
+                Description = book.Description,
+                Author = author.Name + ' ' + author.Surname,
+                ImageUrl = book.ImageUrl,
+                Categories = book.Categories?.Select(category => category.Category?.Name).ToList()
+            };
+
+            return bookDto;
         }
+
     }
 }

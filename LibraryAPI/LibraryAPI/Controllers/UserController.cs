@@ -14,21 +14,22 @@ namespace LibraryAPI.Controllers
     {
         private readonly DatabaseContext _dbContext;
         private readonly UserManager<User> _userManager;
+        private readonly RoleManager<Role> _roleManager;
 
-        public UserController(DatabaseContext dbContext, UserManager<User> userManager)
+        public UserController(DatabaseContext dbContext, UserManager<User> userManager, RoleManager<Role> roleManager)
         {
             _dbContext = dbContext;
             _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> Get()
+        public async Task<ActionResult<IEnumerable<UserDto>>> Get()
         {
             var users = await _dbContext.Users
-            .Include(b => b.Role)
-            .Include(b => b.Books)
-            .ToListAsync();
-            var bookDtos = new List<BookDto>();
+                .Include(u => u.Role)
+                .Include(u => u.Books)
+                .ToListAsync();
 
             var userDtos = users.Select(user => new UserDto
             {
@@ -37,10 +38,20 @@ namespace LibraryAPI.Controllers
                 Surname = user.Surname,
                 Email = user.Email,
                 Bio = user.Bio,
-                Role = user.Role.Name
+                Role = user.Role.Name,
+                Books = user.Books.Select(book => new BookDto
+                {
+                    Id = book.Id,
+                    Title = book.Title,
+                    Description = book.Description,
+                    Author = book.Author.Name,
+                    ImageUrl = book.ImageUrl
+                }).ToList()
             }).ToList();
+
             return Ok(userDtos);
         }
+
 
         [HttpGet("{id}")]
         public ActionResult<User> Get(int id)
@@ -71,7 +82,7 @@ namespace LibraryAPI.Controllers
                     Author = book.Author.Name,
                     ImageUrl = book.ImageUrl,
 
-                })
+                }).ToList()
             };
             return Ok(userDto);
         }
@@ -102,9 +113,27 @@ namespace LibraryAPI.Controllers
             {
                 User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, UserName = user.Email, RoleId = user.RoleId, Bio = user.Bio };
                 var result = await _userManager.CreateAsync(newUser, user.Password);
-
+                var role = await _roleManager.FindByIdAsync(user.RoleId.ToString());
+                if (role != null)
+                {
+                    if (!await _userManager.IsInRoleAsync(newUser, role.Name))
+                    {
+                        var addToRoleResult = await _userManager.AddToRoleAsync(newUser, role.Name);
+                        if (!addToRoleResult.Succeeded)
+                        {
+                            var addToRoleErrors = addToRoleResult.Errors.Select(e => e.Description);
+                            Console.WriteLine("Failed to assign role to the user. Errors: " + string.Join(", ", addToRoleErrors));
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Role not found for the specified RoleId.");
+                }
                 if (result.Succeeded)
                 {
+
+
                     return await Task.FromResult(newUser);
                 }
                 else
@@ -116,6 +145,53 @@ namespace LibraryAPI.Controllers
             return BadRequest("User already exists.");
         }
 
+        [HttpPut("{id}")]
+        [Authorize("AdminOnly")]
+        public async Task<ActionResult<User>> Put(int id, RegisterModel user)
+        {
+            var existingUser = await _userManager.FindByIdAsync(id.ToString());
+            if (existingUser == null)
+            {
+                return NotFound();
+            }
+
+            existingUser.Name = user.Name;
+            existingUser.Surname = user.Surname;
+            existingUser.Email = user.Email;
+            existingUser.UserName = user.Email;
+            existingUser.RoleId = user.RoleId;
+            existingUser.Bio = user.Bio;
+
+            var result = await _userManager.UpdateAsync(existingUser);
+            if (result.Succeeded)
+            {
+                var role = await _roleManager.FindByIdAsync(user.RoleId.ToString());
+                if (role != null)
+                {
+                    if (!await _userManager.IsInRoleAsync(existingUser, role.Name))
+                    {
+                        var addToRoleResult = await _userManager.AddToRoleAsync(existingUser, role.Name);
+                        if (!addToRoleResult.Succeeded)
+                        {
+                            var addToRoleErrors = addToRoleResult.Errors.Select(e => e.Description);
+                            Console.WriteLine("Failed to assign role to the user. Errors: " + string.Join(", ", addToRoleErrors));
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Role not found for the specified RoleId.");
+                }
+
+                return existingUser;
+            }
+            else
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                Console.WriteLine("Failed to update user. Errors: " + string.Join(", ", errors));
+                return BadRequest(errors);
+            }
+        }
     }
 }
 

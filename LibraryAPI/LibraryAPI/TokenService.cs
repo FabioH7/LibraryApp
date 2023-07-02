@@ -7,12 +7,19 @@ using Microsoft.IdentityModel.Tokens;
 using LibraryAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.Linq;
 
+public class TokenResult
+{
+    public string AccessToken { get; set; }
+    public string RefreshToken { get; set; }
+}
 public interface ITokenService
 {
     string GenerateAccessToken(User user);
     string GenerateRefreshToken();
-    string RefreshAccessToken(string refreshToken);
+    TokenResult RefreshTokens(string refreshToken);
 }
 
 public class TokenService : ITokenService
@@ -41,11 +48,11 @@ public class TokenService : ITokenService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new List<Claim>
-        {
-            new Claim("sub", user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName)
-            // Add role claims
-        }),
+            {
+                new Claim("sub", user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.UserName)
+                // Add role claims
+            }),
             Expires = DateTime.UtcNow.AddDays(_expirationDays),
             Issuer = _issuer,
             Audience = _audience,
@@ -71,7 +78,7 @@ public class TokenService : ITokenService
         }
     }
 
-    public string RefreshAccessToken(string refreshToken)
+    public TokenResult RefreshTokens(string refreshToken)
     {
         var user = _userManager.Users.FirstOrDefault(u => u.RefreshToken == refreshToken);
         if (user == null)
@@ -87,6 +94,10 @@ public class TokenService : ITokenService
         user.RefreshToken = newRefreshToken;
         _userManager.UpdateAsync(user).GetAwaiter().GetResult();
 
-        return newAccessToken;
+        return new TokenResult
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken
+        };
     }
 }
