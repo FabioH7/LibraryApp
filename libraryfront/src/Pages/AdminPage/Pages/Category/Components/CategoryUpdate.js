@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Swal from "sweetalert2";
 
 function CategoryUpdate({ category, update }) {
   const [updatedCategory, setUpdatedCategory] = useState(category);
@@ -12,19 +13,33 @@ function CategoryUpdate({ category, update }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refresh');
+    const token = localStorage.getItem("token");
+    const refreshToken = localStorage.getItem("refresh");
     try {
-      const response = await axios.put(`http://localhost:5142/api/Category/${category.id}`, updatedCategory, {
-        headers: {
+      const response = await axios.put(
+        `http://localhost:5142/api/Category/${category.id}`,
+        updatedCategory,
+        {
+          headers: {
             Authorization: `Bearer ${token}`,
-            RefreshToken: refreshToken
-    }});
-      console.log('Category updated:', response.data);
+            RefreshToken: refreshToken,
+          },
+        }
+      );
+      console.log("Category updated:", response.data);
       setUpdatedCategory(null);
       update(response.data);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Category updated Successfully!",
+      });
     } catch (error) {
-      console.error('Failed to update category:', error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.response.data.title,
+      });
     }
   };
 
@@ -32,7 +47,7 @@ function CategoryUpdate({ category, update }) {
     const { name, value } = e.target;
     setUpdatedCategory((prevCategory) => ({
       ...prevCategory,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -56,13 +71,16 @@ function CategoryUpdate({ category, update }) {
           value={updatedCategory.priority}
           onChange={handleChange}
           className="form-input border-2 border-blue-400 rounded mt-1 block w-full"
-          />
-        </label>
-        <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-          Update Category
-        </button>
-      </form>
-    );
-  }
-  
-  export default CategoryUpdate;
+        />
+      </label>
+      <button
+        type="submit"
+        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+      >
+        Update Category
+      </button>
+    </form>
+  );
+}
+
+export default CategoryUpdate;

@@ -39,6 +39,8 @@ namespace LibraryAPI.Controllers
                 Email = user.Email,
                 Bio = user.Bio,
                 Role = user.Role.Name,
+                CreatedBy = user.CreatedBy,
+                CreatedAt = user.CreatedAt,
                 Books = user.Books.Select(book => new BookDto
                 {
                     Id = book.Id,
@@ -111,7 +113,8 @@ namespace LibraryAPI.Controllers
             var userExists = await _userManager.FindByEmailAsync(user.Email);
             if (userExists == null)
             {
-                User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, UserName = user.Email, RoleId = user.RoleId, Bio = user.Bio };
+                string createdAt = DateTime.Now.ToString("MM/dd/yyyy H:mm");
+                User newUser = new User { Name = user.Name, Surname = user.Surname, Email = user.Email, CreatedAt = createdAt, CreatedBy = user.CreatedBy, UserName = user.Email, RoleId = user.RoleId, Bio = user.Bio };
                 var result = await _userManager.CreateAsync(newUser, user.Password);
                 var role = await _roleManager.FindByIdAsync(user.RoleId.ToString());
                 if (role != null)

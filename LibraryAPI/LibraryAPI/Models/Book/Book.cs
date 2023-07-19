@@ -11,24 +11,12 @@ public class Book
     public string Title { get; set; }
     public string Description { get; set; }
     public string ImageUrl { get; set; }
+    public string CreatedBy { get; set; }
 
     [ForeignKey("AuthorId")]
     public int AuthorId { get; set; }
     public User Author { get; set; }
-    private DateTime CreatedAt { get; set; }
+    public string CreatedAt { get; set; }
     public List<BookCategory> Categories { get; set; }
-
-    public static Book FromCreateModel(CreateBook createModel)
-    {
-        return new Book
-        {
-            CreatedAt = DateTime.UtcNow,
-            Title = createModel.Title,
-            Description = createModel.Description,
-            AuthorId = createModel.AuthorId,
-            Categories = new List<BookCategory>()
-        };
-    }
-
 }
 

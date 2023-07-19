@@ -4,7 +4,6 @@ export default function Modal({label, close, children}) {
   
   return (
     <>
-       
         <>
           <div
             className="justify-center items-center flex overflow-x-hidden fixed inset-0 z-50 outline-none focus:outline-none w"

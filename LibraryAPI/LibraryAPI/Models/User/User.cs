@@ -13,7 +13,8 @@ public class User : IdentityUser<int>
     public int RoleId { get; set; }
     public string? RefreshToken { get; set; }
     public Role Role { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public string CreatedAt { get; set; }
+    public string CreatedBy { get; set; }
     public ICollection<Book> Books { get; set; }
 }
 

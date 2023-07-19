@@ -1,102 +1,113 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Select from 'react-select';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Select from "react-select";
+import Swal from "sweetalert2";
 
 const BookEdit = ({ book, handleUpdate }) => {
-  const [authors, setAuthors] = useState([])
-  const [categories, setCategories] = useState([])
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [authors, setAuthors] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [author, setAuthor] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [cover, setCover] = useState(null);
 
   useEffect(() => {
-    getData()
+    getData();
     setTitle(book.title);
     setDescription(book.description);
     setAuthor(authors.find((author) => author.id === book.authorId));
     setSelectedCategories(getCategories());
   }, [book]);
 
-  
   const getData = async () => {
-      await axios.get('http://localhost:5142/api/User').then((response) => {
-                setAuthors(response.data)
-            })
-            
-            await axios.get('http://localhost:5142/api/Category').then((response) => {
-                setCategories(response.data)
-            })
-        }
-        
-        const handleAuthorChange = (selectedOption) => {
+    await axios.get("http://localhost:5142/api/User").then((response) => {
+      setAuthors(response.data);
+    });
+
+    await axios.get("http://localhost:5142/api/Category").then((response) => {
+      setCategories(response.data);
+    });
+  };
+
+  const handleAuthorChange = (selectedOption) => {
     setAuthor(selectedOption);
   };
 
   const handleCategoryChange = (selectedOptions) => {
-      setSelectedCategories(selectedOptions);
-    };
-    
-    const handleCoverChange = (e) => {
-        setCover(e.target.files[0]);
-    };
-    
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('description', description);
-        formData.append('authorId', author.value);
+    setSelectedCategories(selectedOptions);
+  };
 
-        selectedCategories.forEach((category) => {
-            formData.append('categoryIds[]', category.value);
-        });
+  const handleCoverChange = (e) => {
+    setCover(e.target.files[0]);
+  };
 
-        formData.append('cover', cover);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("authorId", author.value);
 
-        try {
-            const token = localStorage.getItem('token');
-            const refreshToken = localStorage.getItem('refresh');
-            const response = await axios.put(
-                        `http://localhost:5142/api/Book/${book.id}`,
-                        formData,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                    RefreshToken: refreshToken,
-                },
-            })
-            console.log(response.data)
-            handler(response.data);
-        } catch (error) {
-            console.error(error.data);
+    selectedCategories.forEach((category) => {
+      formData.append("categoryIds[]", category.value);
+    });
+
+    formData.append("cover", cover);
+    formData.append("createdBy", book.createdBy);
+
+    try {
+      const token = localStorage.getItem("token");
+      const refreshToken = localStorage.getItem("refresh");
+      const response = await axios.put(
+        `http://localhost:5142/api/Book/${book.id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            RefreshToken: refreshToken,
+          },
         }
-};
+      );
+      console.log(response.data);
+      handler(response.data);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Book edited Succesfully!",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.response.data.title,
+      });
+    }
+  };
 
-const handler = (data) => {
-    console.log("handler", data)
-    handleUpdate(data)
-}
+  const handler = (data) => {
+    console.log("handler", data);
+    handleUpdate(data);
+  };
 
-const authorOptions = authors.map((author) => ({
+  const authorOptions = authors.map((author) => ({
     value: author.id,
     label: `${author.name} ${author.surname}`,
-}));
+  }));
 
-const categoryOptions = categories.map((category) => ({
+  const categoryOptions = categories.map((category) => ({
     value: category.id,
     label: category.name,
-}));
+  }));
 
-const getCategories = () => {
-  let categoryIds = []
-  for (const cat of book.categories) {
-      const idCat = categoryOptions.find(c => c.label === cat)
-      categoryIds.push(idCat)
-  }
-  return categoryIds
-}
+  const getCategories = () => {
+    let categoryIds = [];
+    for (const cat of book.categories) {
+      const idCat = categoryOptions.find((c) => c.label === cat);
+      categoryIds.push(idCat);
+    }
+    return categoryIds;
+  };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto">

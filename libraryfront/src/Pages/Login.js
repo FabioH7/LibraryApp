@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react'
 import { AuthContext } from '../Contexts/authContext';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 
 export default function Login() {
@@ -27,9 +28,15 @@ export default function Login() {
           ).then(response => {
             console.log(response.data)
             login(response.data)
+            window.location.search = ""
+            window.location.pathname = "/admin"
+        }).catch((error) => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: error.response.data,
+              })
         });
-        window.location.search = ""
-        window.location.pathname = "/admin"
     }
 
   return (

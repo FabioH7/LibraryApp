@@ -37,7 +37,8 @@ namespace LibraryAPI.Seeders
             // Create admin user if it doesn't exist
             if (adminUser == null)
             {
-                adminUser = new User { Name = "Admin", Surname = "Admin", Email = adminEmail, UserName = adminEmail, RoleId = 1 };
+                string createdAt = DateTime.UtcNow.ToString("MM/dd/yyyy H:mm");
+                adminUser = new User { Name = "Admin", Surname = "Admin", Email = adminEmail, UserName = "admin", RoleId = 1, CreatedAt = createdAt, CreatedBy = "System" };
                 var refreshToken = tokenService.GenerateRefreshToken();
                 adminUser.RefreshToken = refreshToken;
                 var result = await userManager.CreateAsync(adminUser, adminPassword);

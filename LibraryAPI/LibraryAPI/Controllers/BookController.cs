@@ -40,6 +40,7 @@ namespace LibraryAPI.Controllers
                 Description = book.Description,
                 Author = book.Author.Name + ' ' + book.Author.Surname,
                 ImageUrl = book.ImageUrl,
+                CreatedBy = book.CreatedBy,
                 Categories = book.Categories.Select(category => category.Category.Name).ToList()
             }).ToList();
             return Ok(bookDtos);
@@ -50,7 +51,8 @@ namespace LibraryAPI.Controllers
         {
             var book = _dbContext.Books.Include(b => b.Author)
             .Include(b => b.Categories)
-            .ThenInclude(bc => bc.Category).FirstOrDefault(b => b.Id == id);
+            .ThenInclude(bc => bc.Category)
+            .FirstOrDefault(b => b.Id == id);
 
             if (book == null)
             {
@@ -63,6 +65,8 @@ namespace LibraryAPI.Controllers
                 Description = book.Description,
                 Author = book.Author.Name + ' ' + book.Author.Surname,
                 ImageUrl = book.ImageUrl,
+                CreatedBy = book.CreatedBy,
+                CreatedAt = book.CreatedAt,
                 Categories = book.Categories.Select(category => category.Category.Name).ToList()
             };
             return Ok(bookDto);
@@ -78,11 +82,11 @@ namespace LibraryAPI.Controllers
             {
                 _dbContext.Books.Remove(book);
                 _dbContext.SaveChanges();
-                return Ok("BookRemoved");
+                return Ok("Book removed succesfully!");
             }
             else
             {
-                throw new ArgumentNullException();
+                return NotFound("Book Not Found!");
             }
         }
 
@@ -90,18 +94,19 @@ namespace LibraryAPI.Controllers
         [Authorize]
         public async Task<ActionResult<Book>> CreateAsync([FromForm] CreateBook createBook)
         {
-            var imageUrl = "";
+            string imageUrl = "";
+            string createdAt = DateTime.UtcNow.ToString("MM/dd/yyyy H:mm");
             if (createBook.Cover != null && createBook.Cover.Length > 0)
             {
                 string uniqueFileName = Guid.NewGuid().ToString() + "_" + createBook.Cover.FileName;
-                string imagePath = Path.Combine("images", uniqueFileName);
+                string imagePath = Path.Combine("Images", uniqueFileName);
                 using (var fileStream = new FileStream(imagePath, FileMode.Create))
                 {
                     await createBook.Cover.CopyToAsync(fileStream);
                 }
                 imageUrl = imagePath;
             }
-            Book newBook = new Book { Title = createBook.Title, ImageUrl = imageUrl, Description = createBook.Description, AuthorId = createBook.AuthorId, Categories = new List<BookCategory>() };
+            Book newBook = new Book { Title = createBook.Title, ImageUrl = imageUrl, Description = createBook.Description, CreatedBy = createBook.CreatedBy, CreatedAt = createdAt, AuthorId = createBook.AuthorId, Categories = new List<BookCategory>() };
             foreach (var categoryId in createBook.CategoryIds)
             {
                 newBook.Categories.Add(new BookCategory
@@ -147,13 +152,9 @@ namespace LibraryAPI.Controllers
             book.Description = createBook.Description;
             book.AuthorId = createBook.AuthorId;
 
-            // Update book categories
             if (createBook.CategoryIds != null)
             {
-                // Clear existing categories
                 book.Categories.Clear();
-
-                // Add new categories
                 foreach (var categoryId in createBook.CategoryIds)
                 {
                     var category = await _dbContext.Categories.FindAsync(categoryId);
@@ -177,6 +178,7 @@ namespace LibraryAPI.Controllers
                 Description = book.Description,
                 Author = author.Name + ' ' + author.Surname,
                 ImageUrl = book.ImageUrl,
+                CreatedBy = book.CreatedBy,
                 Categories = book.Categories?.Select(category => category.Category?.Name).ToList()
             };
 

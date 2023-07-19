@@ -33,22 +33,6 @@ namespace Backend_Web_Lib.Controllers
             _tokenService = tokenService;
         }
 
-        [HttpPost("register")]
-        public async Task<ActionResult> Register([FromBody] RegisterModel model)
-        {
-            var newUser = new User { Name = model.Name, Surname = model.Surname, Bio = model.Bio, RoleId = model.RoleId };
-            var isCreated = await _userManager.CreateAsync(newUser);
-            if (isCreated.Succeeded)
-            {
-                return Ok();
-            }
-            else
-            {
-
-                return BadRequest(isCreated.Errors);
-            }
-        }
-
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginModel model)
         {
@@ -59,7 +43,7 @@ namespace Backend_Web_Lib.Controllers
                 var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
                 if (result == PasswordVerificationResult.Failed)
                 {
-                    return Unauthorized();
+                    return Conflict("Password is not correct!");
                 }
                 var roles = await _userManager.GetRolesAsync(user);
                 var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role));
@@ -84,13 +68,14 @@ namespace Backend_Web_Lib.Controllers
                     user = new
                     {
                         username = user.UserName,
-                        email = user.Email,
-                        role = roles
+                        bio = user.Bio,
+                        role = roles[0],
+                        createdAt = user.CreatedAt,
+                        email = user.Email
                     }
                 });
             }
-
-            return Unauthorized();
+            return NotFound("User does not exist! Check your Username!");
         }
     }
 }

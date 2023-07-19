@@ -22,12 +22,14 @@ namespace LibraryAPI.Controllers
         public async Task<ActionResult<IEnumerable<Category>>> Get()
         {
             var categories = await _dbContext.Categories.ToListAsync();
-            var categoryDtos = categories.Select(book => new CategoryDto
+            var categoryDtos = categories.Select(category => new CategoryDto
             {
-                Id = book.Id,
-                Name = book.Name,
-                Priority = book.Priority,
-
+                Id = category.Id,
+                Name = category.Name,
+                Priority = category.Priority,
+                Premium = category.Premium,
+                CreatedBy = category.CreatedBy,
+                CreatedAt = category.CreatedAt
             }).ToList();
             return Ok(categoryDtos);
         }
@@ -40,8 +42,29 @@ namespace LibraryAPI.Controllers
             {
                 return NotFound("Category not found");
             }
-            var catDto = new CategoryDto { Id = category.Id, Name = category.Name, Priority = category.Priority };
+            var catDto = new CategoryDto {Id = category.Id,
+                Name = category.Name,
+                Priority = category.Priority,
+                Premium = category.Premium,
+                CreatedBy = category.CreatedBy,
+                CreatedAt = category.CreatedAt };
             return Ok(category);
+        }
+
+        [HttpGet("premium")]
+        public async Task<ActionResult<IEnumerable<Category>>> GetByPremium()
+        {
+            var categories = await _dbContext.Categories.Where(c => c.Premium == true).ToListAsync();
+            var categoryDtos = categories.Select(category => new CategoryDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Priority = category.Priority,
+                Premium = category.Premium,
+                CreatedBy = category.CreatedBy,
+                CreatedAt = category.CreatedAt
+            }).ToList();
+            return Ok(categoryDtos);
         }
 
         [HttpDelete("{id}")]
@@ -65,7 +88,13 @@ namespace LibraryAPI.Controllers
         [Authorize("AdminOnly")]
         public async Task<ActionResult<Category>> Post(CreateCategory category)
         {
-            var newCategory = new Category { Name = category.Name, Priority = category.Priority };
+            var existingCategory = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == category.Name);
+            if (existingCategory != null)
+            {
+                return Conflict("Category with the same name already exists.");
+            }
+            string createdAt = DateTime.Now.ToString("MM/dd/yyyy H:mm");
+            var newCategory = new Category { Name = category.Name, Priority = category.Priority, CreatedAt = createdAt, CreatedBy = category.CreatedBy, Premium = category.Premium};
             await _dbContext.Categories.AddAsync(newCategory);
             await _dbContext.SaveChangesAsync();
             return await Task.FromResult(newCategory);
@@ -76,13 +105,14 @@ namespace LibraryAPI.Controllers
         public async Task<ActionResult<Category>> Put(int id, CreateCategory updatedCategory)
         {
             var category = _dbContext.Categories.FirstOrDefault(b => b.Id == id);
-
             if (category == null)
             {
-                return NotFound();
+                return NotFound("Category not found!");
             }
             category.Name = updatedCategory.Name;
             category.Priority = updatedCategory.Priority;
+            category.CreatedBy = updatedCategory.CreatedBy;
+            category.Premium = updatedCategory.Premium;
             await _dbContext.SaveChangesAsync();
             return await Task.FromResult(category);
         }

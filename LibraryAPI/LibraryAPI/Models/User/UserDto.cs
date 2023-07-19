@@ -7,6 +7,7 @@ public class UserDto
     public string Surname { get; set; }
     public string? Bio { get; set; }
     public string Role { get; set; }
-
+    public string CreatedBy { get; set; }
+    public string CreatedAt { get; set; }
     public IEnumerable<BookDto> Books { get; set; }
 }

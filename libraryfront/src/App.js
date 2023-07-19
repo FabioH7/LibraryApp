@@ -22,12 +22,12 @@ function App() {
   return (
     <div className="bg-gray-50 dark:bg-gray-900">
       <BrowserRouter>
-      <AuthProvider>
-          <Routes>
-            <Route path="/admin"element={<AdminPage />} />
-            <Route path="/admin/login" element={<Login/>} />
-          </Routes>
-      </AuthProvider>
+        <AuthProvider>
+            <Routes>
+              <Route path="/admin"element={<AdminPage />} />
+              <Route path="/admin/login" element={<Login/>} />
+            </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </div>
   );
